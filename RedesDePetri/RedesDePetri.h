@@ -35,15 +35,23 @@
 //Retorna nil se a transição não existir
 -(NSArray*)saidasDeTransicao:(NSString *) transicao;
 
+//Retorna dicionário com os lugares de entrada como chaves e o peso como valores
+//Retorna nil se a transição não existir
+-(NSDictionary*)entradasEPesosDeTransicao:(NSString *)transicao;
+
+//Retorna dicionário com os lugares de saída como chaves e o peso como valores
+//Retorna nil se a transição não existir
+-(NSDictionary*)saidasEPesosDeTransicao:(NSString *)transicao;
+
 //Recebe um dicionario onde as chaves sao os lugares e os valores sao as marcacoes
-//Reseta o historico de marcações da rede, tendo apenas a marcação recebida como marcação inicial
+//Reseta o historico de marcações da rede
 //Retorna NO se o dicionário não possuir todos os lugares existentes na rede e apenas estes lugares, neste caso não reseta o histórico
 -(BOOL) setarMarcacao:(NSDictionary*) marcacao;
 
 //Retorna a marcação atual
 -(NSDictionary *) marcacaoAtual;
 
-//Retorna um array de marcações (Cada marcação é um NSDictionary)
+//Retorna um array de marcações (Cada marcação é um NSDictionary) contendo as marcações anteriores à atual
 -(NSArray *) historicoDeMarcacoes;
 
 //Retorna as transições habilitadas

@@ -472,6 +472,7 @@
 				E3477B8C194E260B00FD9BCB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		E3477B8D194E260B00FD9BCB /* Build configuration list for PBXNativeTarget "RedesDePetriTests" */ = {
 			isa = XCConfigurationList;
@@ -480,6 +481,7 @@
 				E3477B8F194E260B00FD9BCB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

@@ -13,7 +13,11 @@
 
 @property (strong, nonatomic) NSString *lugar;
 @property (strong, nonatomic) NSString *transicao;
-@property (nonatomic) NSInteger peso;
+@property (strong, nonatomic) NSNumber *peso;
+
+@end
+
+@implementation Arco
 
 @end
 
@@ -46,7 +50,7 @@
 
 -(BOOL)adicionarLugar:(NSString *)lugar {
     if (![_lugares containsObject:lugar]) {
-        [_marcacao setValue:0 forKey:lugar];
+        [_marcacao setValue:@(0) forKey:lugar];
         [_lugares addObject:lugar];
         return YES;
     }
@@ -68,7 +72,7 @@
     
     for (Arco *a in _arcosDeEntrada) {
         if ([a.lugar isEqualToString:lugar] && [a.transicao isEqualToString:transicao]) {
-            [a setPeso:peso];
+            [a setPeso:@(peso)];
             return YES;
         }
     }
@@ -76,7 +80,7 @@
     Arco *novoArco = [Arco new];
     novoArco.lugar = lugar;
     novoArco.transicao = transicao;
-    
+    novoArco.peso = @(peso);
     [_arcosDeEntrada addObject:novoArco];
     
     return YES;
@@ -89,7 +93,7 @@
     
     for (Arco *a in _arcosDeSaida) {
         if ([a.lugar isEqualToString:lugar] && [a.transicao isEqualToString:transicao]) {
-            [a setPeso:peso];
+            [a setPeso:@(peso)];
             return YES;
         }
     }
@@ -97,7 +101,7 @@
     Arco *novoArco = [Arco new];
     novoArco.lugar = lugar;
     novoArco.transicao = transicao;
-    
+    novoArco.peso = @(peso);
     [_arcosDeSaida addObject:novoArco];
     
     return YES;
@@ -134,6 +138,37 @@
     return retorno;
 }
 
+
+-(NSDictionary*)entradasEPesosDeTransicao:(NSString *)transicao {
+    if (![_transicoes containsObject:transicao]) {
+        return nil;
+    }
+    NSMutableDictionary *retorno = [NSMutableDictionary new];
+    
+    for (Arco *a in _arcosDeEntrada) {
+        if ([a.transicao isEqualToString:transicao]) {
+            [retorno setValue:a.peso forKey:a.lugar];
+        }
+    }
+    
+    return retorno;
+}
+
+-(NSDictionary*)saidasEPesosDeTransicao:(NSString *)transicao {
+    if (![_transicoes containsObject:transicao]) {
+        return nil;
+    }
+    NSMutableDictionary *retorno = [NSMutableDictionary new];
+    
+    for (Arco *a in _arcosDeSaida) {
+        if ([a.transicao isEqualToString:transicao]) {
+            [retorno setValue:a.peso forKey:a.lugar];
+        }
+    }
+    
+    return retorno;
+}
+
 -(BOOL) setarMarcacao:(NSDictionary *)marcacao {
     NSArray *keys = [marcacao allKeys];
     if ([keys count] != [_lugares count]) {
@@ -147,7 +182,6 @@
     
     _marcacao = [NSMutableDictionary dictionaryWithDictionary:marcacao];
     [_historicoDeMarcacoes removeAllObjects];
-    [_historicoDeMarcacoes addObject:_marcacao];
     
     return YES;
 }
@@ -160,24 +194,50 @@
     return _historicoDeMarcacoes;
 }
 
-
-// TO DO
 -(NSArray*) transicoesHabilitadas {
     NSMutableArray *retorno = [NSMutableArray new];
-    
+    BOOL habilitada;
+    for (NSString *t in _transicoes) {
+        habilitada = YES;
+        NSDictionary *entradas = [self entradasEPesosDeTransicao:t];
+        NSArray *keys = [entradas allKeys];
+        for (NSString *k in keys) {
+            NSNumber *v = [entradas valueForKey:k];
+            if (v > [_marcacao valueForKey:k]) {
+                habilitada = NO;
+                break;
+            }
+        }
+        if (habilitada) {
+            [retorno addObject:t];
+        }
+    }
     return retorno;
 }
 
 
-// TO DO
 -(BOOL) aplicarTransicao:(NSString *)transicao {
     BOOL retorno = YES;
     
-    if (![_transicoes containsObject:transicao]) {
+    if (![_transicoes containsObject:transicao] || ![[self transicoesHabilitadas] containsObject:transicao]) {
         return NO;
     }
     
+    [_historicoDeMarcacoes addObject:_marcacao];
     
+    NSDictionary *entradasEPesos = [self entradasEPesosDeTransicao:transicao];
+    NSArray *keys = [entradasEPesos allKeys];
+    for (NSString *k in keys) {
+        NSNumber *p = [entradasEPesos valueForKey:k];
+        [_marcacao setValue:@([[_marcacao valueForKey:k] integerValue] - [p integerValue]) forKey:k];
+    }
+    
+    NSDictionary *saidasEPesos = [self saidasEPesosDeTransicao:transicao];
+    keys = [saidasEPesos allKeys];
+    for (NSString *k in keys) {
+        NSNumber *p = [saidasEPesos valueForKey:k];
+        [_marcacao setValue:@([[_marcacao valueForKey:k] integerValue] + [p integerValue]) forKey:k];
+    }
     
     return retorno;
 }
