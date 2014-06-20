@@ -9,6 +9,22 @@
 #import "RedesDePetri.h"
 
 
+@implementation No
+
+-(id) init {
+    if (self = [super init]) {
+        _filhos = [NSMutableArray new];
+        _pai = nil;
+        _estado = 0;
+    }
+    return self;
+}
+
+@end
+
+
+
+
 @interface Arco : NSObject
 
 @property (strong, nonatomic) NSString *lugar;
@@ -195,15 +211,34 @@
 }
 
 -(NSArray*) transicoesHabilitadas {
+    return [self transicoesHabilitadasComMarcacao:_marcacao];
+}
+
+
+-(BOOL) aplicarTransicao:(NSString *)transicao {
+    NSDictionary *r = [self aplicarTransicao:transicao comMarcacao:_marcacao];
+    if (r) {
+        _marcacao = [NSMutableDictionary dictionaryWithDictionary:r];
+        return YES;
+    } else {
+        return NO;
+    }
+}
+
+-(NSArray*) transicoesHabilitadasComMarcacao:(NSDictionary*)marcacao {
     NSMutableArray *retorno = [NSMutableArray new];
     BOOL habilitada;
     for (NSString *t in _transicoes) {
         habilitada = YES;
+        
         NSDictionary *entradas = [self entradasEPesosDeTransicao:t];
         NSArray *keys = [entradas allKeys];
         for (NSString *k in keys) {
+            if ([[marcacao valueForKey:k] isEqualToNumber:@(-1)]) {
+                continue;
+            }
             NSNumber *v = [entradas valueForKey:k];
-            if (v > [_marcacao valueForKey:k]) {
+            if ([v isGreaterThan:[marcacao valueForKey:k]]) {
                 habilitada = NO;
                 break;
             }
@@ -215,31 +250,138 @@
     return retorno;
 }
 
-
--(BOOL) aplicarTransicao:(NSString *)transicao {
-    BOOL retorno = YES;
-    
-    if (![_transicoes containsObject:transicao] || ![[self transicoesHabilitadas] containsObject:transicao]) {
-        return NO;
+-(NSDictionary *) aplicarTransicao:(NSString *) transicao comMarcacao:(NSDictionary *) marcacao {
+    if (![_transicoes containsObject:transicao] || ![[self transicoesHabilitadasComMarcacao:marcacao] containsObject:transicao]) {
+        return nil;
     }
     
-    [_historicoDeMarcacoes addObject:_marcacao];
+    
+    NSMutableDictionary *marcacaoFinal = [[NSMutableDictionary alloc] initWithDictionary:marcacao];
     
     NSDictionary *entradasEPesos = [self entradasEPesosDeTransicao:transicao];
     NSArray *keys = [entradasEPesos allKeys];
     for (NSString *k in keys) {
         NSNumber *p = [entradasEPesos valueForKey:k];
-        [_marcacao setValue:@([[_marcacao valueForKey:k] integerValue] - [p integerValue]) forKey:k];
+        [marcacaoFinal setValue:@([[marcacaoFinal valueForKey:k] integerValue] - [p integerValue]) forKey:k];
     }
+    
     
     NSDictionary *saidasEPesos = [self saidasEPesosDeTransicao:transicao];
     keys = [saidasEPesos allKeys];
     for (NSString *k in keys) {
         NSNumber *p = [saidasEPesos valueForKey:k];
-        [_marcacao setValue:@([[_marcacao valueForKey:k] integerValue] + [p integerValue]) forKey:k];
+        [marcacaoFinal setValue:@([[marcacaoFinal valueForKey:k] integerValue] + [p integerValue]) forKey:k];
+    }
+    
+    return marcacaoFinal;
+}
+
+-(No*) arvoreDeCobertura {
+    No *raiz = [[No alloc] init];
+    [raiz setMarcacao:_marcacao];
+    
+    NSMutableArray *fila = [[NSMutableArray alloc] initWithObjects:raiz, nil]; //Fila com folhas que precisam ser expandidas
+    
+    while ([fila count] != 0) {
+        No *atual = [fila firstObject];
+        NSArray *transicoesHabilitadas = [self transicoesHabilitadasComMarcacao:atual.marcacao];
+        if ([transicoesHabilitadas count] != 0) { // Não terminal
+            NSMutableDictionary *ws = [NSMutableDictionary new];
+            NSArray *keys = [atual.marcacao allKeys];
+            for (NSString *k in keys) {
+                NSNumber *p = [atual.marcacao valueForKey:k];
+                if ([p isEqualToNumber:[NSNumber numberWithInt:-1]]) {
+                    [ws setValue:p forKey:k];
+                }
+            }
+            for (NSString *t in transicoesHabilitadas) {
+                
+                No *novoNo = [[No alloc] init];
+                [novoNo setTransicao:t];
+           //     NSLog(@"<<Aplicando marcacao %@>>",atual.marcacao);
+                [novoNo setMarcacao:[NSMutableDictionary dictionaryWithDictionary:[self aplicarTransicao:t comMarcacao:atual.marcacao]]];
+                novoNo.pai = atual;
+           //     NSLog(@"<<Adicionando No \nmarcacao %@\n filhos %@\npai %@\n transicao %@\nestado %ld \nfilhodetransicao %@\n",novoNo.marcacao,novoNo.filhos,novoNo.pai,novoNo.transicao,(long)novoNo.estado,novoNo.pai.transicao);
+                if ([ws count] > 0) {
+           //         NSLog(@"<Marcacao antiga1 %@>",novoNo.marcacao);
+                    [novoNo.marcacao addEntriesFromDictionary:ws];
+            //        NSLog(@"<Marcacao nova1 %@>",novoNo.marcacao);
+                }
+                
+           //     NSLog(@"<Marcacao antiga2 %@>",novoNo.marcacao);
+                [self procurarLoopECorrigir:atual marcacao:novoNo.marcacao];
+            //    NSLog(@"<Marcacao nova2 %@>",novoNo.marcacao);
+                
+                
+                if ([self verificarSePossuiMarcacaoIgualA:novoNo.marcacao emArvore:raiz]) { // Duplicado
+                    novoNo.estado = 2;
+                } else {
+                    [fila addObject:novoNo];
+                }
+                
+                [atual.filhos addObject:novoNo];
+                
+            }
+        } else { // Terminal
+            atual.estado = 1;
+        }
+        [fila removeObjectAtIndex:0];
+    }
+    
+    return raiz;
+}
+
+-(BOOL) procurarLoopECorrigir:(No *) no marcacao:(NSMutableDictionary *) marcacao {
+    if (no == nil) {
+        return NO;
+    } else {
+        NSArray *keys = [marcacao allKeys];
+        NSMutableArray *chavesMaiores = [NSMutableArray new];
+        BOOL possuiMenor = NO;
+        for (NSString *k in keys) {
+            NSNumber *p = [marcacao valueForKey:k];
+            NSNumber *p2 = [no.marcacao valueForKey:k];
+            if ([p isGreaterThan:p2]) {
+                [chavesMaiores addObject:k];
+            } else if ([p isLessThan:p2]) {
+                possuiMenor = YES;
+                break;
+            }
+        }
+        
+        if (!possuiMenor && [chavesMaiores count] > 0) { // Domina
+            for (NSString *k in chavesMaiores) {
+                [marcacao setValue:[NSNumber numberWithInt:-1] forKey:k];
+            }
+            return YES;
+        } else {
+            return [self procurarLoopECorrigir:no.pai marcacao:marcacao];
+        }
+    }
+    
+    return NO;
+}
+
+-(BOOL) verificarSePossuiMarcacaoIgualA:(NSDictionary*) marcacao emArvore:(No*) raiz {
+    if (raiz == nil) {
+        return NO;
+    }
+    
+    if ([raiz.marcacao isEqualToDictionary:marcacao]) {
+        return YES;
+    }
+    
+    BOOL retorno = NO;
+    
+    for (No *f in raiz.filhos) {
+        if ([self verificarSePossuiMarcacaoIgualA:marcacao emArvore:f]) {
+            retorno = YES;
+            break;
+        }
     }
     
     return retorno;
 }
+
 
 @end

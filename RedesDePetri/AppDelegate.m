@@ -14,49 +14,53 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
     RedesDePetri *rdp = [[RedesDePetri alloc] init];
-    [rdp adicionarTransicao:@"T1"];
-    [rdp adicionarTransicao:@"T2"];
-    [rdp adicionarTransicao:@"T3"];
-    [rdp adicionarTransicao:@"T4"];
+    [rdp adicionarTransicao:@"t1"];
+    [rdp adicionarTransicao:@"t2"];
+    [rdp adicionarTransicao:@"t3"];
     
-    [rdp adicionarLugar:@"A"];
-    [rdp adicionarLugar:@"B"];
-    [rdp adicionarLugar:@"C"];
+    [rdp adicionarLugar:@"p1"];
+    [rdp adicionarLugar:@"p2"];
+    [rdp adicionarLugar:@"p3"];
+    [rdp adicionarLugar:@"p4"];
     
-    [rdp adicionarArcoDeTransicao:@"T1" paraLugar:@"A" comPeso:1];
-    [rdp adicionarArcoDeTransicao:@"T2" paraLugar:@"B" comPeso:1];
-    [rdp adicionarArcoDeTransicao:@"T3" paraLugar:@"C" comPeso:2];
-    [rdp adicionarArcoDeLugar:@"A" paraTransicao:@"T3" comPeso:2];
-    [rdp adicionarArcoDeLugar:@"B" paraTransicao:@"T3" comPeso:1];
-    [rdp adicionarArcoDeLugar:@"C" paraTransicao:@"T4" comPeso:2];
+    [rdp adicionarArcoDeLugar:@"p1" paraTransicao:@"t1" comPeso:1];
+    [rdp adicionarArcoDeLugar:@"p2" paraTransicao:@"t2" comPeso:1];
+    [rdp adicionarArcoDeLugar:@"p2" paraTransicao:@"t3" comPeso:1];
+    [rdp adicionarArcoDeLugar:@"p3" paraTransicao:@"t3" comPeso:1];
     
-    NSLog(@"Marcação Atual: \n%@\n\n",[rdp marcacaoAtual]);
-    NSLog(@"Transições Habilitadas: \n%@\n\n",[rdp transicoesHabilitadas]);
+    [rdp adicionarArcoDeTransicao:@"t1" paraLugar:@"p2" comPeso:1];
+    [rdp adicionarArcoDeTransicao:@"t1" paraLugar:@"p3" comPeso:1];
+    [rdp adicionarArcoDeTransicao:@"t2" paraLugar:@"p1" comPeso:1];
+    [rdp adicionarArcoDeTransicao:@"t3" paraLugar:@"p3" comPeso:1];
+    [rdp adicionarArcoDeTransicao:@"t3" paraLugar:@"p4" comPeso:1];
     
-    [rdp aplicarTransicao:@"T1"];
     
-    NSLog(@"Marcação Atual: \n%@\n\n",[rdp marcacaoAtual]);
-    NSLog(@"Transições Habilitadas: \n%@\n\n",[rdp transicoesHabilitadas]);
     
-    [rdp aplicarTransicao:@"T1"];
     
-    NSLog(@"Marcação Atual: \n%@\n\n",[rdp marcacaoAtual]);
-    NSLog(@"Transições Habilitadas: \n%@\n\n",[rdp transicoesHabilitadas]);
+    [rdp setarMarcacao:@{@"p1" : @(1), @"p2" : @(0),@"p3" : @(0),@"p4" : @(0)}];
     
-    [rdp aplicarTransicao:@"T2"];
+    
     
     NSLog(@"Marcação Atual: \n%@\n\n",[rdp marcacaoAtual]);
     NSLog(@"Transições Habilitadas: \n%@\n\n",[rdp transicoesHabilitadas]);
     
-    [rdp aplicarTransicao:@"T3"];
+
     
-    NSLog(@"Marcação Atual: \n%@\n\n",[rdp marcacaoAtual]);
-    NSLog(@"Transições Habilitadas: \n%@\n\n",[rdp transicoesHabilitadas]);
     
-    [rdp aplicarTransicao:@"T4"];
+
     
-    NSLog(@"Marcação Atual: \n%@\n\n",[rdp marcacaoAtual]);
-    NSLog(@"Transições Habilitadas: \n%@\n\n",[rdp transicoesHabilitadas]);
+    No *arvore = [rdp arvoreDeCobertura];
+    
+    NSMutableArray *nos = [NSMutableArray new];
+    [nos addObject:arvore];
+    NSLog(@"\n\nÁrvore de Cobertura\n");
+    while ([nos count]) {
+        No *atual = [nos firstObject];
+        
+        NSLog(@"\nMarcação com transição %@:\n%@\n",atual.transicao ,atual.marcacao);
+        [nos addObjectsFromArray:atual.filhos];
+        [nos removeObject:atual];
+    }
 
 }
 

@@ -8,6 +8,20 @@
 
 #import <Foundation/Foundation.h>
 
+// Para arvore de cobertura
+@interface No : NSObject
+
+@property (strong, nonatomic) NSMutableDictionary *marcacao;
+@property (strong, nonatomic) NSMutableArray *filhos;
+@property (strong, nonatomic) No *pai;
+@property (strong, nonatomic) NSString *transicao; //Transição que gerou o nó
+@property (nonatomic) NSInteger estado; // 0 - Nenhuma, 1 - Terminal, 2 - Duplicado
+
+-(id) init;
+@end
+
+
+
 @interface RedesDePetri : NSObject
 
 
@@ -60,4 +74,10 @@
 //Retorna NO se não existir uma transição com o nome passado ou se ela não estiver habilitada
 -(BOOL) aplicarTransicao:(NSString *) transicao;
 
+//Retorna o Nó raiz da árvore de cobertura
+//A marcação w (loop) é feita com o número -1
+-(No*) arvoreDeCobertura;
+
 @end
+
+
