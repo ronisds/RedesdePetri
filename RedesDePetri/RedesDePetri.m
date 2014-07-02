@@ -298,19 +298,13 @@
                 
                 No *novoNo = [[No alloc] init];
                 [novoNo setTransicao:t];
-           //     NSLog(@"<<Aplicando marcacao %@>>",atual.marcacao);
                 [novoNo setMarcacao:[NSMutableDictionary dictionaryWithDictionary:[self aplicarTransicao:t comMarcacao:atual.marcacao]]];
                 novoNo.pai = atual;
-           //     NSLog(@"<<Adicionando No \nmarcacao %@\n filhos %@\npai %@\n transicao %@\nestado %ld \nfilhodetransicao %@\n",novoNo.marcacao,novoNo.filhos,novoNo.pai,novoNo.transicao,(long)novoNo.estado,novoNo.pai.transicao);
                 if ([ws count] > 0) {
-           //         NSLog(@"<Marcacao antiga1 %@>",novoNo.marcacao);
                     [novoNo.marcacao addEntriesFromDictionary:ws];
-            //        NSLog(@"<Marcacao nova1 %@>",novoNo.marcacao);
                 }
                 
-           //     NSLog(@"<Marcacao antiga2 %@>",novoNo.marcacao);
                 [self procurarLoopECorrigir:atual marcacao:novoNo.marcacao];
-            //    NSLog(@"<Marcacao nova2 %@>",novoNo.marcacao);
                 
                 
                 if ([self verificarSePossuiMarcacaoIgualA:novoNo.marcacao emArvore:raiz]) { // Duplicado
@@ -371,17 +365,129 @@
         return YES;
     }
     
-    BOOL retorno = NO;
+    BOOL marcacaoIgual = NO;
     
     for (No *f in raiz.filhos) {
         if ([self verificarSePossuiMarcacaoIgualA:marcacao emArvore:f]) {
-            retorno = YES;
+            marcacaoIgual = YES;
             break;
         }
     }
     
-    return retorno;
+    return marcacaoIgual;
 }
 
+-(NSArray*) estadosBloqueantes {
+    NSMutableArray *bloqueantes = [NSMutableArray new];
+    
+    NSMutableArray *fila = [NSMutableArray arrayWithObjects:[self arvoreDeCobertura], nil];
+    
+    while ([fila count] > 0) {
+        No *atual = [fila firstObject];
+        [fila removeObjectAtIndex:0];
+        [fila addObjectsFromArray:atual.filhos];
+        if ([[self transicoesHabilitadasComMarcacao:atual.marcacao] count] == 0) {
+            [bloqueantes addObject:atual.marcacao];
+        }
+    }
+    
+    return bloqueantes;
+}
+
+-(NSArray*) estadosNaoLimitados {
+    NSMutableArray *naoLimitados = [NSMutableArray new];
+    
+    NSMutableArray *fila = [NSMutableArray arrayWithObjects:[self arvoreDeCobertura], nil];
+    
+    while ([fila count] > 0) {
+        No *atual = [fila firstObject];
+        [fila removeObjectAtIndex:0];
+        [fila addObjectsFromArray:atual.filhos];
+        BOOL naoLimitado = NO;
+        
+        for (NSNumber *m in [atual.marcacao allValues]) {
+            if ([m isEqualToNumber:@(-1)]) {
+                naoLimitado = YES;
+                break;
+            }
+        }
+        if (naoLimitado) {
+            [naoLimitados addObject:atual.marcacao];
+        }
+    }
+    
+    return naoLimitados;
+}
+
+-(BOOL) verificarSeEstadoEhNaoAncancavel:(NSDictionary *)marcacao {
+    return ![self verificarSeEstadoEhAncancavel:marcacao naArvore:[self arvoreDeCobertura]];
+}
+
+-(BOOL) verificarSeARedeEhConservativa {
+    No *raiz = [self arvoreDeCobertura];
+    NSMutableArray *fila = [NSMutableArray arrayWithObjects:raiz, nil];
+    
+    int somaDasMarcacoes = 0;
+    
+    for (NSNumber *m in [raiz.marcacao allValues]) {
+        if ([m isEqualToNumber:@(-1)]) {
+            return NO;
+        }
+        somaDasMarcacoes += [m intValue];
+    }
+    
+    while ([fila count] > 0) {
+        No *atual = [fila firstObject];
+        [fila removeObjectAtIndex:0];
+        [fila addObjectsFromArray:atual.filhos];
+        
+        int aux = 0;
+        
+        for (NSNumber *m in [atual.marcacao allValues]) {
+            if ([m isEqualToNumber:@(-1)]) {
+                return NO;
+            }
+            aux += [m intValue];
+        }
+        if (aux != somaDasMarcacoes) {
+            return NO;
+        }
+    }
+    
+    return YES;
+}
+
+-(BOOL) verificarSeEstadoEhAncancavel:(NSDictionary *)marcacao naArvore:(No *) raiz {
+    if (raiz == nil) {
+        return NO;
+    }
+    
+    if ([raiz.marcacao isEqualToDictionary:marcacao]) {
+        return YES;
+    }
+    
+    BOOL marcacaoIgual = YES;
+    for (NSString *k in [marcacao allKeys]) {
+        if (![[marcacao valueForKey:k] isEqualToNumber:[raiz.marcacao valueForKey:k]] && ![[marcacao valueForKey:k] isEqualToNumber:@(-1)]) {
+            marcacaoIgual = NO;
+            break;
+        }
+    }
+    
+    if (marcacaoIgual) {
+        return YES;
+    }
+    
+    
+    marcacaoIgual = NO;
+    for (No *f in raiz.filhos) {
+        if ([self verificarSePossuiMarcacaoIgualA:marcacao emArvore:f]) {
+            marcacaoIgual = YES;
+            break;
+        }
+    }
+    
+    return marcacaoIgual;
+}
 
 @end

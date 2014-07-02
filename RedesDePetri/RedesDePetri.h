@@ -78,6 +78,22 @@
 //A marcação w (loop) é feita com o número -1
 -(No*) arvoreDeCobertura;
 
+//Verifica se existem estados bloqueantes na arvore de cobertura formada pela marcação atual da rdp
+//Retorna um array com as marcacoes dos estados bloqueantes
+-(NSArray *) estadosBloqueantes;
+
+//Verifica se existem estados não-limitados na arvore de cobertura formada pela marcação atual da rdp
+//Retorna um array com as marcacoes dos estados não-limitados
+-(NSArray *) estadosNaoLimitados;
+
+//Retorna YES se a rede for conservativa
+-(BOOL) verificarSeARedeEhConservativa;
+
+//Verifica se o estado com a marcacao passada é não alcancavel a partir da marcacao atual
+-(BOOL) verificarSeEstadoEhNaoAncancavel:(NSDictionary *) marcacao;
+
+
+
 @end
 
 
